@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Install the VCE Attendance bookmark</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--card:#fff;--ink:#18181b;--mute:#71717a;--line:#e4e4e7;--grn:#1fa463;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131313;--card:#1c1c1c;--ink:#ececec;--mute:#9a9a9a;--line:#2c2c2c;--grn:#34c58d}}
+:root[data-theme="dark"]{--bg:#131313;--card:#1c1c1c;--ink:#ececec;--mute:#9a9a9a;--line:#2c2c2c;--grn:#34c58d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.55}
+main{max-width:640px;margin:0 auto;padding:24px 16px 40px}
+h1{font-size:1.5rem;margin:0 0 6px;letter-spacing:-.01em}
+h2{font-size:1.05rem;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0}
+.mute{color:var(--mute);font-size:.9rem}
+ol{padding-left:20px;margin:8px 0}
+li{margin:8px 0}
+a.bm{display:inline-block;background:var(--ink);color:var(--bg);font-weight:700;text-decoration:none;padding:10px 16px;border-radius:8px;cursor:grab}
+button{font:inherit;font-weight:700;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 16px;cursor:pointer}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--grn);outline-offset:2px}
+details{margin-top:14px}
+summary{cursor:pointer;font-weight:700}
+a.tr{color:var(--ink);font-weight:700}
+</style>
+</head>
+<body>
+<main>
+<h1>Install the VCE Attendance bookmark</h1>
+<p class="mute">A one-time setup. The bookmark reads your attendance on the ERP page, inside your own browser, and opens your tracker. Your ERP password is never used or collected.</p>
+
+<section class="card">
+<h2>On a laptop</h2>
+<ol>
+<li>Drag this button to your bookmarks bar: <a class="bm" id="bm" href="#">VCE Attendance</a></li>
+<li>Log in to the VCE ERP and stay on the dashboard (the page listing your semesters).</li>
+<li>Click the bookmark once. Your tracker opens with your numbers.</li>
+</ol>
+</section>
+
+<section class="card">
+<h2>On an Android phone (Chrome)</h2>
+<ol>
+<li>Tap <button id="copy">Copy code</button> <span class="mute" id="msg"></span></li>
+<li>Open any page, tap the three dots, then the star to bookmark it. Open Bookmarks, edit that bookmark, set the name to <b>vce</b>, and paste the code into the URL box. Save.</li>
+<li>Log in to the VCE ERP and stay on the dashboard.</li>
+<li>Tap the address bar, type <b>vce</b>, and tap the suggestion with the bookmark icon.</li>
+</ol>
+<details>
+<summary>Not working? Try the longer code</summary>
+<p class="mute">Some ERP pages block the short version. This one carries everything inside it.</p>
+<button id="copyLong">Copy longer code</button> <span class="mute" id="msgLong"></span>
+</details>
+</section>
+
+<p class="mute">Prefer not to use a bookmark? <a class="tr" href="./">Open the tracker</a> and paste your attendance page into it instead.</p>
+</main>
+<script>
+var BASE='https://abhiramtangellapalli-code.github.io/Attendence/';
+function run(){
+  var DASH='';
+  function tx(x){return(x.textContent||'').replace(/\s+/g,' ').trim()}
+  function esc(t){return String(t).replace(/[&<>"]/g,function(x){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]})}
+  function note(m){var d=document.getElementById('vce-st');if(!d){d=document.createElement('div');d.id='vce-st';d.style.cssText='position:fixed;left:10px;right:10px;bottom:20px;max-width:440px;margin:auto;background:#18181b;color:#fff;padding:12px 14px;border-radius:10px;z-index:2147483647;font:14px/1.4 system-ui,sans-serif;text-align:center';document.body.appendChild(d)}d.innerHTML='<div>'+m+'</div><div style="margin-top:6px"><a href="#" id="vce-sx" style="color:#9cf">Close</a></div>';document.getElementById('vce-sx').onclick=function(e){e.preventDefault();d.remove()}}
+  function extract(doc){
+    var data=null;
+    [].forEach.call(doc.querySelectorAll('table'),function(t){
+      if(data)return;
+      var rows=[].map.call(t.querySelectorAll('tr'),function(tr){return[].map.call(tr.children,tx)});
+      var hi=-1,pi=-1,i;
+      for(i=0;i<rows.length;i++){
+        if(hi<0&&/^held/i.test(rows[i][0])&&rows[i].length>2)hi=i;
+        if(pi<0&&/^presentee/i.test(rows[i][0])&&rows[i].length>2)pi=i;
+      }
+      if(hi<1||pi<1)return;
+      for(i=hi-1;i>=0;i--){if(rows[i].length==rows[hi].length){data={names:rows[i],held:rows[hi],pres:rows[pi]};break}}
+    });
+    if(!data)return null;
+    var list=[],j;
+    for(j=1;j<data.held.length;j++){
+      var n=data.names[j],h=+data.held[j],p=+data.pres[j];
+      if(n&&!isNaN(h)&&!isNaN(p))list.push([n,h,p]);
+    }
+    return list.length?list:null;
+  }
+  function show(list){
+    if(DASH){var u=DASH+'#d='+encodeURIComponent(JSON.stringify(list));note('Opening your dashboard... If it does not open, <a href="'+u+'" style="color:#7cf">tap here</a>.');location.href=u;return}
+    var R=+prompt('Required attendance %',75)||75,H=0,P=0,body='';
+  function e(s){return String(s).replace(/[&<>"]/g,function(x){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]})}
+  function f(h,p){
+    if(!h)return[0,'No classes yet',1];
+    var pc=p/h*100;
+    if(pc>=R){var s=Math.floor(p*100/R-h+1e-9);return[pc,s>0?'Can miss '+s:'Attend next class',1]}
+    if(R>=100)return[pc,'Cannot reach '+R+'%',0];
+    return[pc,'Attend next '+Math.ceil((R*h-100*p)/(100-R)-1e-9)+' in a row',0];
+  }
+  list.forEach(function(x){
+    var r=f(x[1],x[2]),act=/^(ECA|CCA)/i.test(x[0]);
+    if(!act){H+=x[1];P+=x[2]}
+    body+='<tr><td>'+e(x[0])+(act?' <i>(not in overall)</i>':'')+'</td><td>'+x[1]+'</td><td>'+x[2]+'</td><td style="color:'+(r[2]?'#1f7a4d':'#b3342b')+';font-weight:700">'+r[0].toFixed(1)+'%</td><td>'+r[1]+'</td></tr>';
+  });
+  var t=f(H,P),old=document.getElementById('vce-att');if(old)old.remove();
+  var d=document.createElement('div');d.id='vce-att';
+  d.style.cssText='position:fixed;top:10px;right:10px;left:10px;max-width:560px;margin:auto;max-height:85vh;overflow:auto;background:#fff;color:#18181b;border:2px solid #18181b;border-radius:10px;padding:14px;z-index:2147483647;font:14px/1.5 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.35)';
+  d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Overall '+t[0].toFixed(2)+'% ('+P+'/'+H+')</b><button id="vce-x" style="font-size:18px;cursor:pointer">×</button></div><div style="margin:4px 0 10px;color:'+(t[2]?'#1f7a4d':'#b3342b')+';font-weight:700">'+t[1]+' across all subjects (target '+R+'%)</div><table style="width:100%;border-collapse:collapse"><tr style="text-align:left"><th>Subject</th><th>Held</th><th>Pres.</th><th>%</th><th>Action</th></tr>'+body+'</table>';
+  document.body.appendChild(d);
+  document.getElementById('vce-x').onclick=function(){d.remove()};
+  }
+  try{
+  var here=extract(document);
+  if(here){show(here);return}
+  var link=null;
+  document.querySelectorAll('tr').forEach(function(tr){
+    if(link||!/studying/i.test(tx(tr)))return;
+    [].forEach.call(tr.querySelectorAll('a'),function(a){if(!link&&/^\d+(\.\d+)?$/.test(tx(a)))link=a});
+  });
+  if(!link){note('Attendance not found. Log in to the ERP, then open the dashboard (the semester list) and try again.');return}
+  note('Reading your current semester attendance...');
+  var cap=null,orig=window.open;
+  window.open=function(u){cap=u;return{closed:false,focus:function(){},close:function(){},document:{write:function(){},close:function(){}}}};
+  link.click();
+  var tries=0,iv=setInterval(function(){
+    tries++;
+    if(!cap&&tries<30)return;
+    clearInterval(iv);window.open=orig;
+    if(!cap){note('Step 2 failed: the page did not try to open an attendance address.');return}
+    note('Found the attendance link. Fetching the page...');
+    var ac=new AbortController(),to=setTimeout(function(){ac.abort()},12000);
+    fetch(new URL(cap,location.href).href,{credentials:'include',signal:ac.signal}).then(function(r){return r.text()}).then(function(h){
+      clearTimeout(to);
+      note('Fetched '+h.length+' characters. Looking for the summary table...');
+      var doc=new DOMParser().parseFromString(h,'text/html'),l=extract(doc);
+      if(l){note('Found '+l.length+' subjects.');show(l)}
+      else if(doc.querySelector('input[type=password]'))note('Your ERP session has expired. Log in again, open the dashboard and tap the bookmark once more.');
+      else note('The attendance page loaded ('+h.length+' characters) but had no summary table. Refresh the dashboard (F5) and try once more.');
+    }).catch(function(e){note('Could not read the attendance page: '+esc(e&&e.message||e))});
+  },100);
+  }catch(e){note('Error: '+esc(e&&e.message||e))}
+}
+var shortCode='javascript:(function(){window.__VCE_DASH="'+BASE+'";var s=document.createElement("script");s.src="'+BASE+'reader.js?"+Date.now();s.onerror=function(){alert("Could not load the reader. Use the longer code from the install page.")};document.body.appendChild(s)})()';
+var longCode='javascript:('+run.toString().replace(/\s*\n\s*/g,' ').replace("var DASH='';","var DASH='"+BASE+"';")+')()';
+var bm=document.getElementById('bm');
+bm.setAttribute('href',shortCode);
+bm.addEventListener('click',function(e){e.preventDefault();alert('Drag this button to your bookmarks bar. Do not click it here.')});
+function wire(btn,msg,code){
+  document.getElementById(btn).addEventListener('click',function(){
+    var m=document.getElementById(msg);
+    try{navigator.clipboard.writeText(code).then(function(){m.textContent='Copied.'},function(){m.textContent='Copy blocked. Use a laptop or the drag button.'})}
+    catch(x){m.textContent='Copy blocked. Use a laptop or the drag button.'}
+  });
+}
+wire('copy','msg',shortCode);wire('copyLong','msgLong',longCode);
+</script>
+</body>
+</html>
